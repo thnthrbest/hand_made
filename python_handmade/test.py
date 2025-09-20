@@ -16,9 +16,9 @@ mp_drawing_bg = mp.solutions.drawing_utils
 
 save_crop = False  # Set to True only when you want to save
 frame_id = 0  # Increment this after each save
-
+model_animal ="bestV4.pt"
 # YOLO PoseDetection Model Path
-model_path = "C:/hand-shadow-ai/model/bestV4.pt"
+model_path = f"C:/hand-shadow-ai/model/{model_animal}"
 
 # Load models and labels
 try:
