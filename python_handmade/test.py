@@ -16,9 +16,9 @@ mp_drawing_bg = mp.solutions.drawing_utils
 
 save_crop = False  # Set to True only when you want to save
 frame_id = 0  # Increment this after each save
-model_animal ="bestV4.pt"
+model_animal ="best.pt"
 # YOLO PoseDetection Model Path
-model_path = f"C:/hand-shadow-ai/model/{model_animal}"
+model_path = f"D:/GitHub/hand_made/python_handmade/model/{model_animal}"
 
 # Load models and labels
 try:
@@ -65,7 +65,6 @@ while True:
     try:
         ret, frame = cap.read()
         if not ret:
-            print("Error: Could not read frame from webcam.")
             cap.release()
             
 
