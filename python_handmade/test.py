@@ -61,10 +61,10 @@ def apply_filters(roi, brightness, contrast, saturation, warmth):
     return roi
 
 while True:
- 
     try:
         ret, frame = cap.read()
         if not ret:
+            print("ควย")
             cap.release()
             
 
