@@ -64,7 +64,6 @@ while True:
     try:
         ret, frame = cap.read()
         if not ret:
-            print("ควย")
             cap.release()
             
 
