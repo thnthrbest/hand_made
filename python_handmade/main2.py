@@ -5,8 +5,8 @@ from ultralytics import YOLO
 import socket
 import struct
 import threading
-import random
 import time
+import random
 
 # Initialize MediaPipe For Hand
 mp_hands = mp.solutions.hands
@@ -18,6 +18,18 @@ mp_selfie_segmentation = mp.solutions.selfie_segmentation
 selfie_segmentation = mp_selfie_segmentation.SelfieSegmentation(model_selection=0) # 0 for general model, 1 for landscape
 mp_drawing_bg = mp.solutions.drawing_utils
 
+
+# --- Configuration ---
+
+# Normal function
+detect = False # use for check it use detection, or not so has detect = True, detect = False 
+NowRun = True # use for recive value form unity, this recive = True, stop = False, this feature has useful
+ShowDebugScreen = False # show screen for debug value, default is close = False, open = True
+checkc = False
+# Detection value
+thres = 70 # it adjust for hand skin color this value has a few is white, and this much it has dim, default is 70
+handScale = 50 # size of Detect box default value is 50
+
 # Bg Remove
 # Choose your background type: "color" now only has color
 BACKGROUND_TYPE = "color" 
@@ -25,46 +37,35 @@ BACKGROUND_TYPE = "color"
 # For "color" background
 BG_COLOR = (0, 0, 0)  # Adjust for Background Color, this use BGR format, Default is black (0,0,0)
 
-ShowDebugScreen = False # show screen for debug value, default is close = False, open = True
 
-# Detection value
-thres = 70 # it adjust for hand skin color this value has a few is white, and this much it has dim, default is 70
-handScale = 50 # size of Detect box default value is 50
 
-# <----- Setup Socket ----->
+# Setup Socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sockImg = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-serverAddressPortSendanimal = ("127.0.0.1", 5053)
-serverAddressPortSendResults = ("127.0.0.1", 5052)
-
-# <----- Setup Socket ----->
-
-play = True
-detect = False
+serverAddressPort = ("127.0.0.1", 5052) # Send result ai
 
 
-model_path = f"D:/GitHub/hand_made/python_handmade/model/best.pt"
-        
-# Load models and labels
-try:
-    model_shadow = YOLO(model_path)
-except Exception as e:
-    print(f"Error loading models or labels: {e}")
-    exit(1)
+    
+animal = ["rabbit","elephent","snail","dog","deer","cow","crab","bird"]
+random_animal = ""
 
+
+# Recive Value form unity
 def ReciveValue():
-    global detect, thres
+    global detect, thres , checkc
     sock_unity_revice = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock_unity_revice.bind(("127.0.0.1", 5051))
+    sock_unity_revice.bind(("127.0.0.1", 5051)) # Recive Value form unity (start anything)
     print(f"Listening on Unity")
+
     while True:
-        if not play :
+        if not NowRun:
             break
-        data, addr = sock_unity_revice.recvfrom(1024)
+        data, addr = sock_unity_revice.recvfrom(1024)  # buffer size is 1024 bytes
         data = data.decode('utf-8')
         
         print("Received message:", data)
         if data == "True":
+            checkc = True
             detect = True
         elif data == "False":
             detect = False
@@ -74,7 +75,8 @@ def ReciveValue():
                 print(thres)
             except Exception as e:
                 print(e)
-        
+                
+    
 # Filter for Silhouette
 def apply_filters(roi, brightness, contrast, saturation, warmth):
     roi = cv2.convertScaleAbs(roi, alpha=contrast / 50.0, beta=brightness - 50)
@@ -96,10 +98,8 @@ print(f"Connected to {client_address}")
 unity_recive_state_thread = threading.Thread(target=ReciveValue)
 unity_recive_state_thread.start()
 
-animal = ["cat", "dog", "elephent", "bird", "fish","rabbit"]
-random_animal = "best"
-
 while True:
+    
     # Receive the length of the incoming frame
     length_data = client_socket.recv(4)
     if not length_data:
@@ -137,18 +137,8 @@ while True:
     results = hands.process(img_rgb)
 
     output = np.zeros_like(output_frame)
-    # if detect:
-    #     # random_animal = random.choice(animal)
-    #     model_path = f"D:/GitHub/hand_made/python_handmade/model/{random_animal}.pt"
-        
-    #     # Load models and labels
-    #     try:
-    #         model_shadow = YOLO(model_path)
-    #     except Exception as e:
-    #         print(f"Error loading models or labels: {e}")
-    #         exit(1)
-            
-    #     # sock.sendto(random_animal.encode(), serverAddressPortSendanimal)
+
+    #Find a hand landmarks 
     if results.multi_hand_landmarks:
         PosXmin = []
         PosXmax = []
@@ -165,15 +155,6 @@ while True:
             y_min, y_max = int(min(y_coords)) - handScale, int(max(y_coords)) + handScale
             x_min, x_max = max(x_min, 0), min(x_max, w)
             y_min, y_max = max(y_min, 0), min(y_max, h)
-            
-            # ----- คำนวณ palm center -----
-            palm_indices = [0, 5, 9, 13, 17]
-            palm_x = np.mean([hand_landmarks.landmark[i].x * w for i in palm_indices])
-            palm_y = np.mean([hand_landmarks.landmark[i].y * h for i in palm_indices])
-            palm_z = np.mean([hand_landmarks.landmark[i].z for i in palm_indices])
-
-            # scale ค่า Z ให้อ่านง่ายขึ้น (เช่น ×100)
-            palm_z_unity = -palm_z * 1000
           
             try:
                 for X, Y, Z in zip(x_coords, y_coords, z_coords):
@@ -182,7 +163,6 @@ while True:
             except Exception as e:
                 print("add value error", e)
 
-           
             # Crop only hand position for accuracy
             try:
                PosXmin.append(x_min)
@@ -213,32 +193,52 @@ while True:
             output[y_min:y_max, x_min:x_max] = hand_filtered
 
             mp_drawing.draw_landmarks(original, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-        
-    try:
-        results_shadow = model_shadow(output, show=False) # YOLO Detection models 
-        for shadow_result in results_shadow:
-            shadow_boxes = shadow_result.boxes
-            if shadow_boxes is not None:
-                for shadow_box in shadow_boxes:
-                    # Bounding box coordinates
-                    x1s, y1s, x2s, y2s = map(int, shadow_box.xyxy[0].tolist())
+        # Send hand landmark to Unity
+        #   sock.sendto(str.encode(SendValue[:len(SendValue)-1]), serverAddressPort)
+
+    
+    # Pose Detection
+    if detect:
+        print(NowRun)
+        try:
+            
+            if checkc:
+                random_animal = random.choice(animal)
+                model_path = f"D:/GitHub/hand_made/python_handmade/model/{random_animal}.pt"
+                # Load models and labels
+                try:
+                    model_shadow = YOLO(model_path)
+                except Exception as e:
+                    #print(f"Error loading models or labels: {e}")
+                    exit(1)
+                checkc = False
+            
+
+            results_shadow = model_shadow(output, show=False) # YOLO Detection models 
+            for shadow_result in results_shadow:
+                shadow_boxes = shadow_result.boxes
+                if shadow_boxes is not None:
+                    for shadow_box in shadow_boxes:
+                        # Bounding box coordinates
+                        x1s, y1s, x2s, y2s = map(int, shadow_box.xyxy[0].tolist())
                         
-                    # Confidence and class
-                    conf_s = float(shadow_box.conf[0])
-                    cls_s = int(shadow_box.cls[0])
+                        # Confidence and class
+                        conf_s = float(shadow_box.conf[0])
+                        cls_s = int(shadow_box.cls[0])
                         
-                    # Draw rectangle
-                    #cv2.rectangle(output, (x1s, y1s), (x2s, y2s), (0, 255, 0), 2)
+                        # Draw rectangle
+                        #cv2.rectangle(output, (x1s, y1s), (x2s, y2s), (0, 255, 0), 2)
                         
-                    # Label
-                    label_text = f"{model_shadow.names[cls_s]} {conf_s:.2f}"
-                    # sock.sendto(str.encode(label_text), serverAddressPortSendResults)
+                        # Label
+                        label_text = f"{model_shadow.names[cls_s]} {conf_s:.2f}"
+                        sock.sendto(str.encode(label_text), serverAddressPort)
                         
-                    #cv2.putText(output, label_text, (x1s, y1s - 10), 
-                        #cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-    except Exception as e:
-        print(f"Shadow detection error: {e}")
-        
+                        #cv2.putText(output, label_text, (x1s, y1s - 10), 
+                                #cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        except Exception as e:
+            print(f"Shadow detection error: {e}")
+                 
+   
     # Send Process Image To Unity 
     _, img_encoded = cv2.imencode('.jpg', output)
     processed_data = img_encoded.tobytes()
@@ -258,13 +258,9 @@ while True:
         elif key == ord('q'):  # Quit
             break
         
-        
-
-# <----- Clean up ----->
-
-play = False
+# Clean up
+NowRun = False
 print("clean")
 client_socket.close()
 sockImg.close()
 cv2.destroyAllWindows()
-# <----- Clean up ----->
