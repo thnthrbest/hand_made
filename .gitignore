@@ -12,6 +12,8 @@ venv/
 
 env/
 
+img/
+
 __pycache__/
 *.pyc
 *.pyo

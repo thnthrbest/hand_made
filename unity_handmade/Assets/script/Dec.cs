@@ -16,7 +16,7 @@ public class Dec : MonoBehaviour
     [SerializeField] private UDPSender uDPSender;
 
     public string serverAddress = "127.0.0.1";
-    public int serverPort = 5000;
+    public int serverPort = 5055;
 
     Texture2D frame;
     Texture2D processedTexture;
@@ -51,11 +51,11 @@ public class Dec : MonoBehaviour
             writer = new BinaryWriter(stream);
             reader = new BinaryReader(stream);
 
-            // if (PlayerPrefs.HasKey("threshold") && uDPSender!=null)
-            // {
-            //     int thres = PlayerPrefs.GetInt("threshold") != 0 ? PlayerPrefs.GetInt("threshold") : 70;
-            //     uDPSender.Sender(PlayerPrefs.GetInt("threshold").ToString());
-            // }
+            if (PlayerPrefs.HasKey("threshold") && uDPSender!=null)
+            {
+                int thres = PlayerPrefs.GetInt("threshold") != 0 ? PlayerPrefs.GetInt("threshold") : 70;
+                uDPSender.Sender(PlayerPrefs.GetInt("threshold").ToString());
+            }
         }
         catch (Exception e)
         {
@@ -80,8 +80,6 @@ public class Dec : MonoBehaviour
 
         if (webcamTexture.isPlaying)
         {
-         
-
             // frame = new Texture2D(webcamTexture.width, webcamTexture.height);
             frame.SetPixels(webcamTexture.GetPixels());
             frame.Apply();
@@ -95,7 +93,7 @@ public class Dec : MonoBehaviour
                 writer.Write(bytes);          // Send the frame data
                 writer.Flush();
                 startTime = DateTime.Now;
-                // UnityEngine.Debug.Log("Send");
+                //UnityEngine.Debug.Log("Send");
             }
             else
             {
@@ -122,7 +120,7 @@ public class Dec : MonoBehaviour
                     // UnityEngine.Debug.Log("Recive");
                     // Do some work here
                     float fps = FindFps(startTime);
-                    UnityEngine.Debug.Log("FPS: " + fps);
+                    //UnityEngine.Debug.Log("FPS: " + fps);
                     // Destroy(frame);
 
 

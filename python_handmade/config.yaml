@@ -1,6 +1,8 @@
 path: data
 train : images
 val : images
-nc: 1
+nc: 3
 names:
   0: rabbit
+  1: elephent
+  2: snail

@@ -6,7 +6,7 @@ using System.Diagnostics;
 public class startServer : MonoBehaviour
 {
     [SerializeField] private bool CanStart = true;
-    [SerializeField] private string ScriptFolder = "C:/Users/Asus-FX517Z/Desktop/sever2/";
+    [SerializeField] private string ScriptFolder = "";
     [SerializeField] private string ScriptName = "";
     [SerializeField] private int delayForStartServer;
     [SerializeField] private Dec dec;
@@ -19,7 +19,6 @@ public class startServer : MonoBehaviour
         yield return new WaitForSeconds(delayForStartServer);
         if (dec != null)
         {
-
             dec.enabled = true;
         }
     }
